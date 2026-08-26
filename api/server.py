@@ -144,13 +144,21 @@ async def start_campaign(request: Request, body: CampaignReq):
     campaign_id = str(uuid.uuid4())
     started_at = _now()
 
+    # Run initial scan synchronously so findings appear immediately in status.
+    from core.synthetic_target import get_target_code
+    from agents.tools import scan_for_credentials, scan_for_injection_vulnerabilities
+    _scan_code = body.code or get_target_code()
+    _raw_cred = scan_for_credentials(_scan_code, campaign_id)
+    _raw_inj = scan_for_injection_vulnerabilities(_scan_code, campaign_id)
+    _initial_findings = _raw_cred["findings"] + _raw_inj["findings"]
+
     _campaigns[campaign_id] = {
         "status": "running",
         "started_at": started_at,
         "target": body.target,
         "operations": body.operations,
         "requestor": body.requestor,
-        "findings": [],
+        "findings": _initial_findings,
         "patches": [],
         "evidence_refs": [],
         "policy_log": [],
