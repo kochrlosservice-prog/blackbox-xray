@@ -5,21 +5,29 @@
 
 ## Inspiration
 
-Every agent security system being built today asks the same question:
-*How do we enforce rules on agents?*
+I run a Burger King restaurant in Germany.
 
-We asked a different question.
+I manage schedules, food safety, staff, and customer flow for a living.
+I am not a software engineer. I have no computer science degree.
+
+When I heard about the All Things Agentic hackathon, I didn't know
+what ADK was. I didn't know Vertex AI. I had never deployed to Cloud Run.
+
+I built BLACKBOX X-RAY anyway — because the question it answers
+is one that matters regardless of who is asking it:
 
 **What if insecure actions were structurally impossible — not forbidden, but inexistent?**
 
-A bird in a murmuration doesn't obey a commander. It reacts to a field. The field *is* the coordination. The field *is* the safety. You don't tell the bird "don't fly into the wall." The wall is part of the geometry of its possible reactions.
+A bird in a murmuration doesn't obey a commander. It reacts to a field.
+The field *is* the coordination. The field *is* the safety.
 
 Current agent security = a guard watching what agents do.
 BLACKBOX X-RAY = a physics in which there is nothing to guard against.
 
 `AGENT_OUTPUT != EXECUTION_AUTHORITY`
 
-This is not a comment in our code. It is a thesis.
+This is not a comment in the code. It is a thesis.
+And it was built between closing shifts.
 
 ---
 
