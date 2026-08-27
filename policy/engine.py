@@ -108,6 +108,8 @@ FORBIDDEN_TOOL_NAMES: frozenset[str] = frozenset(
     [
         "bash_tool",
         "BashTool",
+        "execute_bash",      # ADK ExecuteBashTool registered name
+        "ExecuteBashTool",   # ADK class name — found via post-submission audit
         "run_bash",
         "shell_tool",
         "ShellTool",
