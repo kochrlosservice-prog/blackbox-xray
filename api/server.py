@@ -269,6 +269,85 @@ async def recent_evidence(request: Request):
     return {"entries": evidence_store.get_all(50)}
 
 
+# ── Prompt Injection Scanner ────────────────────────────────────────────────
+
+class PIRequest(BaseModel):
+    target_url: str
+    allowed_hosts: list[str] = []
+    message_field: str = "message"
+    response_field: str = "response"
+    headers: dict = {}
+    payload_filter: list[str] = []
+    generate_report: bool = False
+    program_name: str = "Unknown"
+
+    @field_validator("target_url")
+    @classmethod
+    def _no_localhost_prod(cls, v: str) -> str:
+        parsed = urlparse(v)
+        if parsed.hostname in ("localhost", "127.0.0.1", "::1") and not v.startswith("http://localhost"):
+            raise ValueError("Only localhost or authorized remote targets allowed")
+        return v
+
+
+@app.post("/api/prompt-injection/scan", status_code=201)
+@limiter.limit("10/minute")
+async def prompt_injection_scan(request: Request, body: PIRequest):
+    """
+    Run prompt injection payloads against an LLM HTTP endpoint.
+    Authorized security research only — use allowed_hosts to scope.
+    """
+    from core.prompt_injection import PromptInjectionScanner, generate_bounty_report
+    from urllib.parse import urlparse
+
+    campaign_id = f"pi-{str(uuid.uuid4())[:8]}"
+
+    scanner = PromptInjectionScanner(
+        message_field=body.message_field,
+        response_field=body.response_field,
+    )
+
+    try:
+        result = scanner.scan(
+            target_url=body.target_url,
+            campaign_id=campaign_id,
+            allowed_hosts=body.allowed_hosts or None,
+            headers=body.headers or None,
+            payload_filter=body.payload_filter or None,
+        )
+    except ValueError as e:
+        raise HTTPException(403, detail={"error": "scope_violation", "reason": str(e)})
+
+    response = {
+        "scan_id": result.scan_id,
+        "campaign_id": campaign_id,
+        "target_url": result.target_url,
+        "total_tested": result.total_tested,
+        "findings_count": len(result.findings),
+        "critical": result.critical_count,
+        "high": result.high_count,
+        "completed_at": result.completed_at,
+        "findings": [
+            {
+                "id": f.id,
+                "payload_id": f.payload_id,
+                "category": f.category,
+                "severity": f.severity,
+                "name": f.name,
+                "matched_indicators": f.matched_indicators,
+                "response_excerpt": f.response_excerpt,
+                "fingerprint": f.fingerprint,
+            }
+            for f in result.findings
+        ],
+    }
+
+    if body.generate_report:
+        response["bounty_report"] = generate_bounty_report(result, body.program_name)
+
+    return response
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api.server:app", host="0.0.0.0", port=PORT, log_config=None)
